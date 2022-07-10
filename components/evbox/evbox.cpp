@@ -58,6 +58,9 @@ void EVBoxDevice::loop() {
         this->setpoint_ = 0.69 * this->max_charge_current_; // 11 kW @ 16A
         pid->SetOutputLimits(this->min_charge_current_, this->max_charge_current_);
         break;
+      case MODE_CUSTOM:
+        this->setpoint_ = this->custom_charge_current_;
+        pid->SetOutputLimits(this->min_charge_current_, this->max_charge_current_);
       case MODE_ON:
         this->setpoint_ = 0.69 * this->max_charge_current_; // 11 kW @ 16A
         pid->SetOutputLimits(this->max_charge_current_, this->max_charge_current_);

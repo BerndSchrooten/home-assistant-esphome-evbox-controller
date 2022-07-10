@@ -20,7 +20,8 @@ enum OperatingModes {
   MODE_MIN = 1,
   MODE_SOLAR = 2,
   MODE_MAX = 3,
-  MODE_ON = 4,
+  MODE_CUSTOM = 4,
+  MODE_ON = 5,
 };
 
 class EVBoxDevice : public uart::UARTDevice, public Component {
@@ -34,6 +35,7 @@ class EVBoxDevice : public uart::UARTDevice, public Component {
   void set_samplevalue(float samplevalue) { this->samplevalue_ = samplevalue; }
   void set_samplevalue_sensor(sensor::Sensor *sensor) { this->samplevalue_sensor_ = sensor; }
   void set_calculated_current_sensor(sensor::Sensor *sensor) { this->calculated_current_sensor_ = sensor; }
+  void set_custom_charge_current(float custom_charge_current) { this->custom_charge_current_ = custom_charge_current;}
 
   void set_phase1_current_sensor(sensor::Sensor *sensor) { this->phase1_current_sensor_ = sensor; }
   void set_phase2_current_sensor(sensor::Sensor *sensor) { this->phase2_current_sensor_ = sensor; }
@@ -66,7 +68,8 @@ class EVBoxDevice : public uart::UARTDevice, public Component {
   double output_charge_current_;
   double setpoint_;
   double samplevalue_;
-  double sampletime_; 
+  double sampletime_;
+  double custom_charge_current_;
   double kp_;
   double ki_;
   double kd_;
@@ -98,6 +101,21 @@ template<typename... Ts> class SetOperatingModeAction : public Action<Ts...> {
     void play(Ts... x) override {
         OperatingModes mode = (OperatingModes) this->mode_.value(x...);
         this->parent_->set_mode(mode);
+    }
+    
+    protected:
+    EVBoxDevice *parent_;
+};
+
+template<typename... Ts> class SetCustomChargeCurrentAction : public Action<Ts...> {
+    public:
+    explicit SetCustomChargeCurrentAction(EVBoxDevice *parent) : parent_(parent) {}
+
+    TEMPLATABLE_VALUE(float, custom_charge_current);
+
+    void play(Ts... x) override {
+        float custom_charge_current = this->custom_charge_current_.value(x...);
+        this->parent_->set_custom_charge_current(custom_charge_current);
     }
     
     protected:
