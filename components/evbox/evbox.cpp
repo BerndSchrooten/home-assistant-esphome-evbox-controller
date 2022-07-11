@@ -1,5 +1,6 @@
 #include "evbox.h"
 #include "pid.h"
+#include "fmt/format.h"
 
 namespace esphome {
 namespace evbox {
@@ -22,8 +23,8 @@ void EVBoxDevice::setup() {
   receiving_ = false;
   output_charge_current_ = 0;
 
-  pid = new PID(&(this->samplevalue_), &(this->output_charge_current_), 
-                &(this->setpoint_), this->kp_, this->ki_, this->kd_, DIRECT);
+  pid = new PID(&(this->measured_power_consumption_), &(this->pid_output_power_consumption_), 
+                &(this->setpoint_power_consumption_), this->kp_, this->ki_, this->kd_, DIRECT);
   pid->SetSampleTime(this->sampletime_ * 1000); 
 
   pid->SetOutputLimits(this->min_charge_current_, this->max_charge_current_);
@@ -49,6 +50,7 @@ void EVBoxDevice::loop() {
       case MODE_MIN:
         this->setpoint_ = 0;
         pid->SetOutputLimits(this->min_charge_current_, this->min_charge_current_);
+        this->output_charge_current_ = this->min_charge_current_;
         break;
       case MODE_SOLAR:
         this->setpoint_ = 0;
@@ -95,21 +97,21 @@ void EVBoxDevice::loop() {
   if( (now - lastSample) > 1000.0*(this->sampletime_ ) )
   {
 
-    if(samplevalue_sensor_)
-      samplevalue_sensor_->publish_state( this->samplevalue_ );
+    if(measured_power_consumption_sensor_)
+      measured_power_consumption_sensor_->publish_state( this->measured_power_consumption_ );
 
     if( this->mode_ == MODE_OFF )
       this->output_charge_current_ = 0.0;
     else
     {
-      if( !std::isnan( this->samplevalue_ ) )
+      if( !std::isnan( this->measured_power_consumption_ ) )
         pid->Compute();
     }
 
     lastSample = now;
 
     if( !std::isnan( this->output_charge_current_ ) )
-    send_max_current_( this->output_charge_current_ );
+      send_max_current_( this->output_charge_current_ );
     
     if(calculated_current_sensor_)
       calculated_current_sensor_->publish_state( this->output_charge_current_ );
@@ -173,14 +175,26 @@ void EVBoxDevice::process_message_( char *msg )
   }
 }
 
-void EVBoxDevice::send_max_current_( float amp ) {
+void EVBoxDevice::send_max_current_( float phase1_current, float phase2_current, float phase3_current ) {
   // MaxChargingCurrent command, timeout=60s, current after timeout 6A
   char buf[35] = "80A06900__00__00__003C003C003C003C" ;   
-  int  ta = round(10*amp);
- 
-  // Set current values (fill in the blanks)
-  buf[8]=buf[12]=buf[16]=hex[(ta >> 4) & 15];
-  buf[9]=buf[13]=buf[17]=hex[(ta >> 0) & 15];
+  
+  int pc1 = round(10*phase1_current);
+  strncpy(&buf[8], fmt::format("{:x}", pc1), 2)
+  // buf[8]=hex[(pc1 >> 4) & 15];
+  // buf[9]=hex[(pc1 >> 0) & 15];
+
+  int pc2 = round(10*phase2_current);
+  strncpy(&buf[12], fmt::format("{:x}", pc2), 2)
+  // buf[12]=hex[(pc2 >> 4) & 15];
+  // buf[13]=hex[(pc2 >> 0) & 15];
+
+  int pc3 = round(10*phase3_current);
+  strncpy(&buf[16], fmt::format("{:x}", pc3), 2)
+  // buf[16]=hex[(pc3 >> 4) & 15];
+  // buf[17]=hex[(pc3 >> 0) & 15];
+
+  
 
   // Calc checksum
   int cs;

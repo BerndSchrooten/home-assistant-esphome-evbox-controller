@@ -14,6 +14,7 @@ AUTO_LOAD = ["sensor"]
 
 CONF_SETPOINT = "setpoint"
 CONF_CUSTOM_CC ="custom_charge_current"
+CONF_FALLBACK_CC="fallback_charge_current"
 CONF_MAX_CC = "max_charge_current"
 CONF_MIN_CC = "min_charge_current"
 CONF_KP = "kp"
@@ -58,6 +59,7 @@ CONFIG_SCHEMA = (
         {
             cv.GenerateID(): cv.declare_id(EVBoxDevice),
             cv.Required(CONF_FLOW_CONTROL_PIN): pins.gpio_output_pin_schema,
+            cv.Optional(CONF_FALLBACK_CC, default=6.0): cv.float_range(min=1.0, max=11.0),
             cv.Optional(CONF_MIN_CC,default=6.0): cv.float_range(min=1.0, max=32.0),
             cv.Optional(CONF_MAX_CC,default=16.0): cv.float_range(min=1.0, max=32.0),
             cv.Optional(CONF_KP,default=0.7): cv.float_,
@@ -79,6 +81,8 @@ async def to_code(config):
     if CONF_FLOW_CONTROL_PIN in config:
         pin = await gpio_pin_expression(config[CONF_FLOW_CONTROL_PIN])
         cg.add(var.set_flow_control_pin(pin))
+    if CONF_FALLBACK_CC in config:
+        cg.add(var.set_fallback_current(config[CONF_FALLBACK_CC]))
     if CONF_MIN_CC in config:
         cg.add(var.set_min_cc(config[CONF_MIN_CC]))
     if CONF_MAX_CC in config:
@@ -93,6 +97,8 @@ async def to_code(config):
         cg.add(var.set_sampletime(config[CONF_SAMPLETIME]))
     if CONF_SETPOINT in config:
         cg.add(var.set_setpoint(config[CONF_SETPOINT]))
+
+    cg.add_library("fmtlib/fmt", None)
 
 @automation.register_action(
     "evbox.set_samplevalue",

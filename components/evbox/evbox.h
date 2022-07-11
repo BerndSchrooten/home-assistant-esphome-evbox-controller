@@ -29,6 +29,7 @@ class EVBoxDevice : public uart::UARTDevice, public Component {
   void setup() override;
   void loop() override;
   void set_flow_control_pin(GPIOPin *flow_control_pin) { this->flow_control_pin_ = flow_control_pin; }
+  void set_fallback_current(float fallback_current) { this->fallback_current_ = fallback_current; }
   void set_min_cc(float min_charge_current) { this->min_charge_current_ = min_charge_current; }
   void set_max_cc(float max_charge_current) { this->max_charge_current_ = max_charge_current; }
   void set_sampletime(float sampletime) { this->sampletime_ = sampletime; }
@@ -40,13 +41,18 @@ class EVBoxDevice : public uart::UARTDevice, public Component {
   void set_phase1_current_sensor(sensor::Sensor *sensor) { this->phase1_current_sensor_ = sensor; }
   void set_phase2_current_sensor(sensor::Sensor *sensor) { this->phase2_current_sensor_ = sensor; }
   void set_phase3_current_sensor(sensor::Sensor *sensor) { this->phase3_current_sensor_ = sensor; }
+  void set_phase1_voltage_sensor(sensor::Sensor *sensor) { this->phase1_voltage_sensor_ = sensor; }
+  void set_phase2_voltage_sensor(sensor::Sensor *sensor) { this->phase2_voltage_sensor_ = sensor; }
+  void set_phase3_voltage_sensor(sensor::Sensor *sensor) { this->phase3_voltage_sensor_ = sensor; }
   void set_total_energy_sensor(sensor::Sensor *sensor) { this->total_energy_sensor_ = sensor; }
 
   void set_setpoint(float setpoint) { this->setpoint_ = setpoint; }
   void set_kp(float kp) { this->kp_ = kp; }
   void set_ki(float ki) { this->ki_ = ki; }
   void set_kd(float kd) { this->kd_ = kd; }
+
   void set_mode(OperatingModes mode) { this->mode_ = mode; }
+  void set_max_power_solar(float power) { this.max_power_solar_ = power; }
  
  protected:
   void send_max_current_( float amp );
@@ -58,23 +64,31 @@ class EVBoxDevice : public uart::UARTDevice, public Component {
   sensor::Sensor *phase1_current_sensor_{nullptr};
   sensor::Sensor *phase2_current_sensor_{nullptr};
   sensor::Sensor *phase3_current_sensor_{nullptr};
+  sensor::Sensor *phase1_voltage_sensor_{nullptr};
+  sensor::Sensor *phase2_voltage_sensor_{nullptr};
+  sensor::Sensor *phase3_voltage_sensor_{nullptr};
+
+  double total_energy_;
   sensor::Sensor *total_energy_sensor_{nullptr};
+
   bool receiving_;
   uint8_t received_data_[256];
   uint32_t received_len_;
 
-  double min_charge_current_;
-  double max_charge_current_;
-  double output_charge_current_;
-  double setpoint_;
+  float fallback_current_;
+  float min_charge_current_;
+  float max_charge_current_;
+  float output_charge_current_;
+  float setpoint_;
   double samplevalue_;
   double sampletime_;
-  double custom_charge_current_;
+  float custom_charge_current_;
   double kp_;
   double ki_;
   double kd_;
-  double total_energy_;
+
   OperatingModes mode_;
+  float max_power_solar_;
 };
 
 template<typename... Ts> class SetSampleValueAction : public Action<Ts...> {
