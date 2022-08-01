@@ -1,5 +1,7 @@
 # EVBox Charge Controller
 
+## This is a work in progress
+
 Homeassistant integration for EVBOX.
 Provides functionality for loadbalancing and solarcharging
 

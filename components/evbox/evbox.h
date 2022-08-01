@@ -10,118 +10,147 @@
 #include "esphome/core/log.h"
 #include "esphome/components/uart/uart.h"
 
-static const char* const TAG = "evbox";
+static const char *const TAG = "evbox";
 
-namespace esphome {
-namespace evbox {
+namespace esphome
+{
+  namespace evbox
+  {
 
-enum OperatingModes {
-  MODE_OFF = 0,
-  MODE_MIN = 1,
-  MODE_SOLAR = 2,
-  MODE_MAX = 3,
-  MODE_CUSTOM = 4,
-  MODE_ON = 5,
-};
+    enum OperatingModes
+    {
+      MODE_OFF = 0,
+      MODE_MIN = 1,
+      MODE_SOLAR = 2,
+      MODE_MAX = 3,
+      MODE_CUSTOM = 4,
+    };
 
-class EVBoxDevice : public uart::UARTDevice, public Component {
- public:
-  void setup() override;
-  void loop() override;
-  void set_flow_control_pin(GPIOPin *flow_control_pin) { this->flow_control_pin_ = flow_control_pin; }
-  void set_min_cc(float min_charge_current) { this->min_charge_current_ = min_charge_current; }
-  void set_max_cc(float max_charge_current) { this->max_charge_current_ = max_charge_current; }
-  void set_sampletime(float sampletime) { this->sampletime_ = sampletime; }
-  void set_samplevalue(float samplevalue) { this->samplevalue_ = samplevalue; }
-  void set_samplevalue_sensor(sensor::Sensor *sensor) { this->samplevalue_sensor_ = sensor; }
-  void set_calculated_current_sensor(sensor::Sensor *sensor) { this->calculated_current_sensor_ = sensor; }
-  void set_custom_charge_current(float custom_charge_current) { this->custom_charge_current_ = custom_charge_current;}
-
-  void set_phase1_current_sensor(sensor::Sensor *sensor) { this->phase1_current_sensor_ = sensor; }
-  void set_phase2_current_sensor(sensor::Sensor *sensor) { this->phase2_current_sensor_ = sensor; }
-  void set_phase3_current_sensor(sensor::Sensor *sensor) { this->phase3_current_sensor_ = sensor; }
-  void set_total_energy_sensor(sensor::Sensor *sensor) { this->total_energy_sensor_ = sensor; }
-
-  void set_setpoint(float setpoint) { this->setpoint_ = setpoint; }
-  void set_kp(float kp) { this->kp_ = kp; }
-  void set_ki(float ki) { this->ki_ = ki; }
-  void set_kd(float kd) { this->kd_ = kd; }
-  void set_mode(OperatingModes mode) { this->mode_ = mode; }
- 
- protected:
-  void send_max_current_( float amp );
-  void process_message_( char *msg );
- 
-  GPIOPin *flow_control_pin_{nullptr};
-  sensor::Sensor *samplevalue_sensor_{nullptr};
-  sensor::Sensor *calculated_current_sensor_{nullptr}; 
-  sensor::Sensor *phase1_current_sensor_{nullptr};
-  sensor::Sensor *phase2_current_sensor_{nullptr};
-  sensor::Sensor *phase3_current_sensor_{nullptr};
-  sensor::Sensor *total_energy_sensor_{nullptr};
-  bool receiving_;
-  uint8_t received_data_[256];
-  uint32_t received_len_;
-
-  double min_charge_current_;
-  double max_charge_current_;
-  double output_charge_current_;
-  double setpoint_;
-  double samplevalue_;
-  double sampletime_;
-  double custom_charge_current_;
-  double kp_;
-  double ki_;
-  double kd_;
-  double total_energy_;
-  OperatingModes mode_;
-};
-
-template<typename... Ts> class SetSampleValueAction : public Action<Ts...> {
+    class EVBoxDevice : public uart::UARTDevice, public Component
+    {
     public:
-    explicit SetSampleValueAction(EVBoxDevice *parent) : parent_(parent) {}
+      void setup() override;
+      void loop() override;
+      void set_flow_control_pin(GPIOPin *flow_control_pin) { this->flow_control_pin_ = flow_control_pin; }
+      void set_fallback_current(float fallback_current) { this->fallback_current_ = fallback_current; }
+      void set_min_cc(float min_charge_current) { this->min_charge_current_ = min_charge_current; }
+      void set_max_cc(float max_charge_current) { this->max_charge_current_ = max_charge_current; }
+      void set_voltage(float voltage) { this->voltage_ = voltage; }
+      void set_nb_active_phases(int active_phases) { this->nb_active_phases_ = active_phases;}
+      void set_sampletime(float sampletime) { this->sampletime_ = sampletime; }
+      void set_calculated_current_sensor(sensor::Sensor *sensor) { this->calculated_current_sensor_ = sensor; }
+      void set_custom_charge_current(float custom_charge_current) { this->custom_charge_current_ = custom_charge_current; }
+      void set_target_solar_power_consumption(float target_solar_power_consumption) { this->target_solar_power_consumption_ = target_solar_power_consumption; }
+      void set_target_solar_power_consumption_sensor(sensor::Sensor *sensor) { this->target_solar_power_consumption_sensor_ = sensor; }
 
-    TEMPLATABLE_VALUE(float, samplevalue);
+      void set_target_current_sensor(sensor::Sensor *sensor) { this->target_current_sensor_ = sensor; }
+      void set_phase1_current_sensor(sensor::Sensor *sensor) { this->phase1_current_sensor_ = sensor; }
+      void set_phase2_current_sensor(sensor::Sensor *sensor) { this->phase2_current_sensor_ = sensor; }
+      void set_phase3_current_sensor(sensor::Sensor *sensor) { this->phase3_current_sensor_ = sensor; }
+      void set_total_energy_sensor(sensor::Sensor *sensor) { this->total_energy_sensor_ = sensor; }
 
-    void play(Ts... x) override {
-        float samplevalue = this->samplevalue_.value(x...);
-        this->parent_->set_samplevalue(samplevalue);
-    }
-    
+      void set_mode(OperatingModes mode) { this->mode_ = mode; }
+
+      void set_kp(float kp) { this->kp_ = kp; }
+      void set_ki(float ki) { this->ki_ = ki; }
+      void set_kd(float kd) { this->kd_ = kd; }
+
     protected:
-    EVBoxDevice *parent_;
-};
+      void send_max_current_(float amp);
+      // void send_command_(char *buffer);
+      void process_message_(char *msg);
+      // char *int_to_hex_byte_array_(int number, int nb_characters);
 
-template<typename... Ts> class SetOperatingModeAction : public Action<Ts...> {
+      GPIOPin *flow_control_pin_{nullptr};
+      sensor::Sensor *target_solar_power_consumption_sensor_{nullptr};
+      sensor::Sensor *target_current_sensor_{nullptr};
+      sensor::Sensor *calculated_current_sensor_{nullptr};
+      sensor::Sensor *phase1_current_sensor_{nullptr};
+      sensor::Sensor *phase2_current_sensor_{nullptr};
+      sensor::Sensor *phase3_current_sensor_{nullptr};
+      sensor::Sensor *total_energy_sensor_{nullptr};
+      bool receiving_;
+      uint8_t received_data_[256];
+      uint32_t received_len_;
+
+      float fallback_current_;
+      float min_charge_current_;
+      float max_charge_current_;
+      float voltage_;
+      int nb_active_phases_;
+      double custom_charge_current_;
+      double sampletime_;
+      OperatingModes mode_;
+
+      double real_phase1_current_;
+      double real_phase2_current_;
+      double real_phase3_current_;
+      double real_max_phase_current_;
+      double total_energy_;
+      
+      double calculated_current_;
+      
+      double target_current_;
+      double target_solar_power_consumption_;
+      
+      double kp_;
+      double ki_;
+      double kd_;
+    };
+
+    template <typename... Ts>
+    class SetTargetSolarPowerConsumptionAction : public Action<Ts...>
+    {
     public:
-    explicit SetOperatingModeAction(EVBoxDevice *parent) : parent_(parent) {}
+      explicit SetTargetSolarPowerConsumptionAction(EVBoxDevice *parent) : parent_(parent) {}
 
-    TEMPLATABLE_VALUE(int, mode);
+      TEMPLATABLE_VALUE(float, target_solar_power_consumption);
 
-    void play(Ts... x) override {
-        OperatingModes mode = (OperatingModes) this->mode_.value(x...);
+      void play(Ts... x) override
+      {
+        float target_solar_power_consumption = this->target_solar_power_consumption_.value(x...);
+        this->parent_->set_target_solar_power_consumption(target_solar_power_consumption);
+      }
+
+    protected:
+      EVBoxDevice *parent_;
+    };
+
+    template <typename... Ts>
+    class SetOperatingModeAction : public Action<Ts...>
+    {
+    public:
+      explicit SetOperatingModeAction(EVBoxDevice *parent) : parent_(parent) {}
+
+      TEMPLATABLE_VALUE(int, mode);
+
+      void play(Ts... x) override
+      {
+        OperatingModes mode = (OperatingModes)this->mode_.value(x...);
         this->parent_->set_mode(mode);
-    }
-    
+      }
+
     protected:
-    EVBoxDevice *parent_;
-};
+      EVBoxDevice *parent_;
+    };
 
-template<typename... Ts> class SetCustomChargeCurrentAction : public Action<Ts...> {
+    template <typename... Ts>
+    class SetCustomChargeCurrentAction : public Action<Ts...>
+    {
     public:
-    explicit SetCustomChargeCurrentAction(EVBoxDevice *parent) : parent_(parent) {}
+      explicit SetCustomChargeCurrentAction(EVBoxDevice *parent) : parent_(parent) {}
 
-    TEMPLATABLE_VALUE(float, custom_charge_current);
+      TEMPLATABLE_VALUE(float, custom_charge_current);
 
-    void play(Ts... x) override {
+      void play(Ts... x) override
+      {
         float custom_charge_current = this->custom_charge_current_.value(x...);
         this->parent_->set_custom_charge_current(custom_charge_current);
-    }
-    
+      }
+
     protected:
-    EVBoxDevice *parent_;
-};
+      EVBoxDevice *parent_;
+    };
 
-}  // namespace evbox
-}  // namespace esphome
-
+  } // namespace evbox
+} // namespace esphome
